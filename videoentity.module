@@ -9,38 +9,36 @@
  */
 function videoentity_entity_info() {
   $info = array();
-  // Our custom video entity needs to be defined here.
-  // See http://drupal.org/node/1026420 and http://drupal.org/node/878804
-  // for more documentation.
   $info['video'] = array(
     // Human readable label.
     'label' => t('Video'),
-    // Table for storing entity data, defined in hook_schema().
     'base table' => 'videoentity_video',
-    // This helps Entity API know how to query your custom table.
     'entity keys' => array(
       'id' => 'id',
       'label' => 'name',
     ),
-    'uri callback' => 'entity_class_uri',
-    // These are the default controllers.
-    // 'entity class' => 'Entity',
-    'entity class' => 'VideoEntity',
-    // 'controller class' => 'DrupalDefaultEntityController',
-    // Other options provided by the EntityAPI contrib module:
+    // This is the default controller.
+    //'controller class' => 'DrupalDefaultEntityController',
+    // Other options provided by the EntityAPI contrib module which we'll be using later.
     // 'controller class' => 'EntityAPIController ',
     // 'controller class' => 'EntityAPIControllerExportable',
-    'controller class' => 'VideoEntityController',
+    'entity class' => 'VideoEntity',
     // This is a uri function provided by the Entity contrib module.
-    // It's a simple wrapper around the uri method in the controller class.
-     // The information below is used to extend the EntityDefaultUIController
+    // It's a simple wrapper around the uri method that needs to be implemented in the controller class.
+    'uri callback' => 'entity_class_uri',
+    // Here is our custom controller that we will provide below.
+    'controller class' => 'VideoEntityController',
+     // The information below is used by the VideoEntityUIController (which extends the EntityDefaultUIController)
      'admin ui' => array(
-       'path' => 'admin/content/videoentity',
+       'path' => 'admin/videoentity',
        'controller class' => 'VideoEntityUIController',
        'menu wildcard' => '%videoentity',
+       'file' => 'videoentity.admin.inc',
      ),
+     'module' => 'videoentity',
+     // Controls who can access entity CRUD.
+     'access callback' => 'videoentity_access',
   );
-
   return $info;
 }
 
@@ -61,8 +59,33 @@ function videoentity_menu() {
     'page arguments' => array(1),
     'access callback' => TRUE,
   );
-
   return $items;
+}
+
+/**
+ * Access callback for VideoEntity CRUD operations.
+ */
+function videoentity_access($op, $videoentity = NULL, $account = NULL) {
+  if ($op == 'view' && user_access('view videos', $account)) {
+    return TRUE;
+  }
+  else if (user_access('administer videos', $account)) {
+    return TRUE;
+  }
+}
+
+/**
+ * Implements hook_permission().
+ */
+function videoentity_permission() {
+  return array(
+    'administer videos' => array(
+      'title' => t('Administer Video Entities'),
+    ),
+    'view videos' => array(
+      'title' => t('View Video Entities'),
+    ),
+  );
 }
 
 /**
@@ -103,9 +126,6 @@ function videoentity_view_entity($video) {
 
 /**
  * Our custom entity class.
- *
- * The Entity class we're overriding is in
- * sites/all/modules/contrib/entity/includes/entity.inc
  */
 class VideoEntity extends Entity {
   /**
@@ -119,11 +139,8 @@ class VideoEntity extends Entity {
 /**
  * Our custom controller for the videoentity type.
  *
- * We're choosing to extend the controller provided by the entity module for
+ * We're choosing to extend the controller provided by the entity module so that we'll have
  * full CRUD support for videoentities.
- *
- * The EntityAPIController is found in
- * sites/all/modules/contrib/entity/includes/entity.controller.inc
  */
 class VideoEntityController extends EntityAPIController {
 
@@ -131,9 +148,6 @@ class VideoEntityController extends EntityAPIController {
 
 /**
  * Our custom controller for the admin ui.
- *
- * The EntityDefaultUIController can be found in
- * sites/all/modules/contrib/entity/includes/entity.ui.inc
  */
 class VideoEntityUIController extends EntityDefaultUIController {
 
